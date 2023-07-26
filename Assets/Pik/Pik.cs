@@ -5,9 +5,10 @@ using UnityEngine.AI;
 
 namespace Pik.Pik
 {
-    public class Move : MonoBehaviour
+    public abstract class Pik : MonoBehaviour
     {
-        public float Speed = 1.9f;
+        public float Speed = 2.0f;
+        public float Acceleration = 2.0f;
         public Transform Target;
         public Vector3 Offset;
 
@@ -16,6 +17,7 @@ namespace Pik.Pik
         void Start()
         {
             NMAgent = GetComponent<NavMeshAgent>();
+            NMAgent.acceleration = Acceleration;
             NMAgent.speed = Speed;
         }
 
