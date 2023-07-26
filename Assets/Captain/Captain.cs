@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Pik.Captain
 {
-    public class Move : MonoBehaviour
+    public class Captain : MonoBehaviour
     {
         public float Speed = 2.0f;
 

@@ -609,10 +609,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 20c0e29761a7cb241bed38322c86e23a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Pik: {fileID: 7775903725051953200, guid: c6f28931619718b468c11c0fe804fa30, type: 3}
+  RedPikPrefab: {fileID: 7775903725051953200, guid: c6f28931619718b468c11c0fe804fa30, type: 3}
+  BlackPikPrefab: {fileID: 7775903725051953200, guid: a02d674c3ae15ac4a9d9182f955577ce, type: 3}
+  BluePikPrefab: {fileID: 7775903725051953200, guid: 10a8cc6a26e59fb45965bae0bdee5f40, type: 3}
   Captain: {fileID: 1623658956}
   PikParent: {fileID: 400726347}
   PikNavTarget: {fileID: 1803280114}
+  RedPikCount: 20
+  BlackPikCount: 10
+  BluePikCount: 15
 --- !u!4 &1441608801
 Transform:
   m_ObjectHideFlags: 0
