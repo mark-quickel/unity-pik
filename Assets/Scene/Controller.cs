@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Pik.UI;
+using Pik.Shared;
+using Pik.Captain;
 
 namespace Pik.Scene { 
     public class Controller : MonoBehaviour
@@ -16,11 +19,13 @@ namespace Pik.Scene {
         public int RedPikCount;
         public int BlackPikCount;
         public int BluePikCount;
+        public UI.Controller UIControllerInstance;
         
-        private const int maxPik = 49;
-        private readonly List<Pik.Pik> pikList = new();
-        private Captain.Captain captain;
-
+        private const int MaxPik = 49;
+        private readonly List<Pik.Pik> PikList = new();
+        private Captain.Captain CaptainInstance;
+        private PikColor[] PikColors;
+        private Vector3 PikTarget;
 
         // Start is called before the first frame update
         void Start()
@@ -41,50 +46,95 @@ namespace Pik.Scene {
                 CreatePikInstance(BluePikPrefab);
             }
 
+            PikColors = new PikColor[] { PikColor.Red, PikColor.Blue, PikColor.Black };
+            UIUpdatePikSelector();
+            
             CreateCaptainInstance();
 
         }
 
         private void CreatePikInstance(GameObject pikType)
         {
-            if (pikList.Count > maxPik) return;
+            if (PikList.Count > MaxPik) return;
             var o = new Vector3(UnityEngine.Random.Range(0.0f, 2.0f), 0, UnityEngine.Random.Range(0.0f, 2.0f));
             var p = Instantiate(pikType, PikNavTarget.position, Quaternion.identity, PikParent);
 
             var s = p.GetComponent<Pik.Pik>();
             s.Target = PikNavTarget;
             s.Offset = o;
-            s.PikThrown += Pik_PikThrown;
-            pikList.Add(s);
+            s.IsAttended = true;
+            PikList.Add(s);
         }
 
         private void CreateCaptainInstance()
         {
-            captain = CaptainPrefab.GetComponent<Captain.Captain>();
-            captain.PikThrown += Captain_PikThrown;
-            captain.PikCalled += Captain_PikCalled;
+            CaptainInstance = CaptainPrefab.GetComponent<Captain.Captain>();
+            CaptainInstance.PikThrown += Captain_PikThrown;
+            CaptainInstance.PikCalled += Captain_PikCalled;
+            CaptainInstance.PikSelectionChanged += Captain_PikSelectionChanged;
+            CaptainInstance.PikTargetMoved += Captain_PikTargetMoved;
+        }
+
+        private void Captain_PikTargetMoved(object sender, TargetMovedEventArgs e)
+        {
+            PikTarget = e.Position;
+            UIControllerInstance.PikTargetInstance.Move(PikTarget);
         }
 
         private void Captain_PikCalled(object sender, EventArgs e)
         {
-            pikList.ForEach(x => x.Call());
+            PikList.ForEach(x => x.Call());
+            UIUpdatePikSelector();
         }
 
         private void Captain_PikThrown(object sender, System.EventArgs e)
         {
-            var direction = captain.transform.forward * ((Captain.Captain)sender).Strength + Vector3.up * ((Captain.Captain)sender).Strength * 3f;
-            var pik = pikList.FirstOrDefault(x => x.IsAttended);
+            var pik = PikList.FirstOrDefault(x => x.IsAttended && x.Color == PikColors[1]);
             if (pik != null)
             {
-                pik.Throw(captain.transform.position, direction);
+                pik.Project(CaptainInstance.transform.position, PikTarget);
+                UIUpdatePikSelector();
+                return;
+            }
+            
+            if (PikList.Count(x => x.IsAttended) > 0)
+            {
+                ShiftPikSelection();
             }
         }
-        
-        private void Pik_PikThrown(object sender, System.EventArgs e)
+
+        private void Captain_PikSelectionChanged(object sender, EventArgs e)
         {
-           
+            ShiftPikSelection();
         }
 
+        private void ShiftPikSelection()
+        {
+            var p0 = PikColors[0];
+            var p1 = PikColors[1];
+            var p2 = PikColors[2];
+
+            PikColors = new PikColor[] { p2, p0, p1 };
+            
+            UpdateCaptainMaxThrowDistance();
+            UIUpdatePikSelector();
+        }
+
+        private void UIUpdatePikSelector() 
+        {
+            var selectedCount = PikList.Count(x => x.IsAttended && x.Color == PikColors[1]);
+            UIControllerInstance.PikSelectorInstance.SetPikSelectionSprites(PikColors);
+            UIControllerInstance.PikSelectorInstance.SetPikSelectionLabel(selectedCount.ToString());
+        }
+
+        private void UpdateCaptainMaxThrowDistance()
+        {
+            var pik = PikList.FirstOrDefault(x => x.Color == PikColors[1]);
+            if (pik != null)
+            {
+                CaptainInstance.MaxThrowDistance = pik.MaxThrowDistance;
+            }
+        }
 
     }
 }

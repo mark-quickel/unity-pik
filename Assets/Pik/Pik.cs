@@ -1,3 +1,4 @@
+using Pik.Shared;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -13,6 +14,8 @@ namespace Pik.Pik
         public Transform Target;
         public Vector3 Offset;
         public bool IsAttended;
+        public PikColor Color;
+        public float MaxThrowDistance;
 
         public EventHandler PikMoved;
         public EventHandler PikThrown;
@@ -20,8 +23,9 @@ namespace Pik.Pik
 
         private NavMeshAgent NavMeshAgentInstance;
         private Rigidbody RigidbodyInstance;
+        private Projectile ProjectileInstance;
+        private bool IsGrounded = true;
         
-
         void Start()
         {
             NavMeshAgentInstance = GetComponent<NavMeshAgent>();
@@ -30,26 +34,33 @@ namespace Pik.Pik
 
             RigidbodyInstance = GetComponent<Rigidbody>();
 
-            IsAttended = true;
+            ProjectileInstance = GetComponent<Projectile>();
+            ProjectileInstance.ProjectileLanded += ProjectileInstance_ProjectileLanded;
         }
-        
+
         void Update()
         {
             Move();
         }
 
-        public void Throw(Vector3 thrower, Vector3 direction)
+       public void Project(Vector3 source, Vector3 target)
         {
             IsAttended = false;
-            transform.position = thrower;
             NavMeshAgentInstance.enabled = false;
-            RigidbodyInstance.AddForce(direction, ForceMode.Impulse);
+            IsGrounded = false;
+            ProjectileInstance.Initialize(source, target);
             PikThrown?.Invoke(this, EventArgs.Empty);
+        }
+        
+        private void ProjectileInstance_ProjectileLanded(object sender, EventArgs e)
+        {
+            IsGrounded = true;
         }
 
         public void Call()
         {
-            // TODO: check to see if grounded
+            if (!IsGrounded) return; 
+            RigidbodyInstance.isKinematic = false;
             NavMeshAgentInstance.enabled = true;
             IsAttended = true;
         }
@@ -60,7 +71,6 @@ namespace Pik.Pik
             NavMeshAgentInstance.destination = Target.position + Offset;
             PikMoved?.Invoke(this, EventArgs.Empty);
         }
-
 
     }
 }

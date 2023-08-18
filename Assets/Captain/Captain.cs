@@ -2,6 +2,7 @@ using Pik.Scene;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
@@ -14,33 +15,60 @@ namespace Pik.Captain
         public float Strength;
         public string Name;
         public Transform NameLabel;
-        
+        public float MaxThrowDistance;
+
         public EventHandler PikThrown;
         public EventHandler PikCalled;
+        public EventHandler PikSelectionChanged;
         public EventHandler CaptainMoved;
-        
+        public EventHandler<TargetMovedEventArgs> PikTargetMoved;
+                
         private Vector3 Direction;
-        private Vector3 LookDirection;
-           
+        private Vector3 TargetPosition;
+
 
         // Update is called once per frame
         void Update()
         {
             CheckMove();
             CheckThrow();
-            CheckCall(); 
+            CheckCall();
+            CheckTargetMoved();            
+            CheckPikSelectedChanged();
             Move();
         }
 
         private void CheckMove()
         {
             Direction = new Vector3(Speed * Input.GetAxis("Horizontal"), 0, Speed * Input.GetAxis("Vertical"));
-            LookDirection = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Camera.main.transform.position.z * -1)) - transform.position;
+        }
+
+        private void CheckTargetMoved()
+        {
+            var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, LayerMask.GetMask("Ground")))
+            {
+                if (Vector3.Distance(hit.point, transform.position) < MaxThrowDistance)
+                {
+                    TargetPosition = hit.point;
+                }
+                else
+                {
+                    // cap the throwing distance
+                    var diff = hit.point - transform.position;
+                    diff.Normalize();
+                    diff *= MaxThrowDistance;
+                    TargetPosition = transform.position + diff;
+                }
+            }
+
+            PikTargetMoved?.Invoke(this, new TargetMovedEventArgs { Position = TargetPosition });
+
         }
 
         void CheckThrow()
         {
-            if (Input.GetKeyDown(KeyCode.O))
+            if (Input.GetButtonUp("Fire1"))
             {
                 PikThrown?.Invoke(this, EventArgs.Empty);
             }
@@ -48,9 +76,17 @@ namespace Pik.Captain
 
         void CheckCall()
         {
-            if (Input.GetKeyDown(KeyCode.P))
+            if (Input.GetButtonUp("Fire2"))
             {
                 PikCalled?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        void CheckPikSelectedChanged()
+        {
+            if (Input.GetAxis("Mouse ScrollWheel") > 0f)
+            {
+                PikSelectionChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
@@ -73,9 +109,6 @@ namespace Pik.Captain
 
             Gizmos.color = Color.blue;
             Gizmos.DrawRay(transform.position, Vector3.forward * 5);
-
-            Gizmos.color = Color.green;
-            Gizmos.DrawRay(transform.position, LookDirection);
 
             var label = NameLabel;
             var style = new GUIStyle();
