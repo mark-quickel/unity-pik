@@ -1,13 +1,8 @@
-using Pik.Scene;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using TMPro;
-using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
+using Pik.Events;
 
-namespace Pik.Captain
+namespace Pik
 {
     public class Captain : MonoBehaviour
     {
@@ -18,6 +13,7 @@ namespace Pik.Captain
         public float MaxThrowDistance;
 
         public EventHandler PikThrown;
+        public EventHandler PikCalling;
         public EventHandler PikCalled;
         public EventHandler PikSelectionChanged;
         public EventHandler CaptainMoved;
@@ -76,6 +72,11 @@ namespace Pik.Captain
 
         void CheckCall()
         {
+            if (Input.GetButton("Fire2"))
+            {
+                PikCalling?.Invoke(this, EventArgs.Empty);
+            }
+
             if (Input.GetButtonUp("Fire2"))
             {
                 PikCalled?.Invoke(this, EventArgs.Empty);
@@ -100,20 +101,6 @@ namespace Pik.Captain
                 CaptainMoved?.Invoke(this, EventArgs.Empty);
             }
             
-        }
-
-        private void OnDrawGizmos()
-        {
-            Gizmos.color = Color.red;
-            Gizmos.DrawRay(transform.position, transform.forward * 5);
-
-            Gizmos.color = Color.blue;
-            Gizmos.DrawRay(transform.position, Vector3.forward * 5);
-
-            var label = NameLabel;
-            var style = new GUIStyle();
-            style.normal.textColor = Color.magenta; 
-            Handles.Label(label.position, Name, style);
         }
 
     }
