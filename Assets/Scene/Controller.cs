@@ -4,8 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using Pik.UI;
-using Pik.Shared;
-using Pik.Captain;
+using Pik.Events;
 
 namespace Pik.Scene { 
     public class Controller : MonoBehaviour
@@ -13,21 +12,20 @@ namespace Pik.Scene {
         public GameObject RedPikPrefab;
         public GameObject BlackPikPrefab;
         public GameObject BluePikPrefab;
-        public GameObject CaptainPrefab;
         public Transform PikParent;
         public Transform PikNavTarget;
         public int RedPikCount;
         public int BlackPikCount;
         public int BluePikCount;
         public UI.Controller UIControllerInstance;
+        public PikTarget PikTargetInstance;
+        public Captain CaptainInstance;
         
         private const int MaxPik = 49;
-        private readonly List<Pik.Pik> PikList = new();
-        private Captain.Captain CaptainInstance;
+        private readonly List<Pik> PikList = new();
         private PikColor[] PikColors;
-        private Vector3 PikTarget;
+        private Vector3 PikTargetPosition;
 
-        // Start is called before the first frame update
         void Start()
         {
             // Create Pik with some randomized attribtues (for now)
@@ -48,9 +46,8 @@ namespace Pik.Scene {
 
             PikColors = new PikColor[] { PikColor.Red, PikColor.Blue, PikColor.Black };
             UIUpdatePikSelector();
-            
+            CreatePikTargetInstance();
             CreateCaptainInstance();
-
         }
 
         private void CreatePikInstance(GameObject pikType)
@@ -59,7 +56,7 @@ namespace Pik.Scene {
             var o = new Vector3(UnityEngine.Random.Range(0.0f, 2.0f), 0, UnityEngine.Random.Range(0.0f, 2.0f));
             var p = Instantiate(pikType, PikNavTarget.position, Quaternion.identity, PikParent);
 
-            var s = p.GetComponent<Pik.Pik>();
+            var s = p.GetComponent<Pik>();
             s.Target = PikNavTarget;
             s.Offset = o;
             s.IsAttended = true;
@@ -68,23 +65,41 @@ namespace Pik.Scene {
 
         private void CreateCaptainInstance()
         {
-            CaptainInstance = CaptainPrefab.GetComponent<Captain.Captain>();
             CaptainInstance.PikThrown += Captain_PikThrown;
+            CaptainInstance.PikCalling += Captain_PikCalling;
             CaptainInstance.PikCalled += Captain_PikCalled;
             CaptainInstance.PikSelectionChanged += Captain_PikSelectionChanged;
             CaptainInstance.PikTargetMoved += Captain_PikTargetMoved;
         }
 
-        private void Captain_PikTargetMoved(object sender, TargetMovedEventArgs e)
+        private void CreatePikTargetInstance()
         {
-            PikTarget = e.Position;
-            UIControllerInstance.PikTargetInstance.Move(PikTarget);
+            PikTargetInstance.PikTargetCalling += PikTarget_PikTargetCalling;
         }
 
+        private void Captain_PikTargetMoved(object sender, TargetMovedEventArgs e)
+        {
+            PikTargetPosition = e.Position;
+            PikTargetInstance.Move(PikTargetPosition);
+        }
+
+        private void Captain_PikCalling(object sender, EventArgs e)
+        {
+            PikTargetInstance.EnableCalling();
+        }
+
+        private void PikTarget_PikTargetCalling(object sender, TargetCallingEventArgs e)
+        {
+
+            PikList.Where(x => e.ColliderInstance.bounds.Contains(x.transform.position)).ToList()
+                .ForEach(x => x.Call());
+            
+            UIUpdatePikSelector();
+        }
+        
         private void Captain_PikCalled(object sender, EventArgs e)
         {
-            PikList.ForEach(x => x.Call());
-            UIUpdatePikSelector();
+            PikTargetInstance.DisableCalling();
         }
 
         private void Captain_PikThrown(object sender, System.EventArgs e)
@@ -92,7 +107,7 @@ namespace Pik.Scene {
             var pik = PikList.FirstOrDefault(x => x.IsAttended && x.Color == PikColors[1]);
             if (pik != null)
             {
-                pik.Project(CaptainInstance.transform.position, PikTarget);
+                pik.Project(CaptainInstance.transform.position, PikTargetPosition);
                 UIUpdatePikSelector();
                 return;
             }

@@ -1,12 +1,7 @@
-using Pik.Shared;
-using Pik.UI;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace Pik.UI
 {

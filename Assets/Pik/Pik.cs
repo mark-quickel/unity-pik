@@ -1,11 +1,8 @@
-using Pik.Shared;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-namespace Pik.Pik
+namespace Pik
 {
     public abstract class Pik : MonoBehaviour
     {
@@ -24,6 +21,7 @@ namespace Pik.Pik
         private NavMeshAgent NavMeshAgentInstance;
         private Rigidbody RigidbodyInstance;
         private Projectile ProjectileInstance;
+        private TrailRenderer TrailRendererInstance;
         private bool IsGrounded = true;
         
         void Start()
@@ -35,7 +33,11 @@ namespace Pik.Pik
             RigidbodyInstance = GetComponent<Rigidbody>();
 
             ProjectileInstance = GetComponent<Projectile>();
+            ProjectileInstance.ProjectileInitialized += ProjectileInstance_ProjectileInitialized;
             ProjectileInstance.ProjectileLanded += ProjectileInstance_ProjectileLanded;
+
+            TrailRendererInstance = transform.GetComponentInChildren<TrailRenderer>();
+            TrailRendererInstance.emitting = false;
         }
 
         void Update()
@@ -51,7 +53,13 @@ namespace Pik.Pik
             ProjectileInstance.Initialize(source, target);
             PikThrown?.Invoke(this, EventArgs.Empty);
         }
-        
+
+        private void ProjectileInstance_ProjectileInitialized(object sender, EventArgs e)
+        {
+            TrailRendererInstance.Clear();
+            TrailRendererInstance.emitting = true;
+        }
+
         private void ProjectileInstance_ProjectileLanded(object sender, EventArgs e)
         {
             IsGrounded = true;
@@ -59,7 +67,8 @@ namespace Pik.Pik
 
         public void Call()
         {
-            if (!IsGrounded) return; 
+            if (!IsGrounded) return;
+            TrailRendererInstance.emitting = false;
             RigidbodyInstance.isKinematic = false;
             NavMeshAgentInstance.enabled = true;
             IsAttended = true;
